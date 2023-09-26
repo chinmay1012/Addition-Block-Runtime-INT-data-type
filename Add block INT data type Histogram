@@ -1,0 +1,64 @@
+ # 1. Importing required libraries
+import pandas as pd
+from matplotlib import pyplot as plt
+import numpy as np
+
+ # 2. Histogram plot style and reading .csv file
+plt.style.use('ggplot')
+data=pd.read_csv(r'C:\Cycletime\HAHN_DOC\\ADD.csv')
+
+def ADD_Int(): 
+    
+   # 3. Data loading from .csv file
+   values = data['ADD_Int_Avg'].values
+
+   # 4. Scott's Rule nin size calculation
+   data_range = np.max(values) - np.min(values)
+   std_dev = np.std(values)
+   n = len(values)
+   bin_size_scott = int(data_range / (3.5 * std_dev / np.cbrt(n)))
+
+   # 5. Outliers using IQR
+   percentile_25 = np.percentile(values, 25)
+   percentile_75 = np.percentile(values, 75)
+   IQR = percentile_75 - percentile_25
+   lower_boundary = percentile_25 - 1.5 * IQR
+   upper_boundary = percentile_75 + 1.5 * IQR
+
+   # 6. Considerring only inbound data
+   inbound_values = values[(values >= lower_boundary) & (values <= upper_boundary)]
+
+   # 7. Plotting HIstogram with relative frequency on Y-axis
+   plt.figure(figsize=(16, 8))
+   counts, bins = np.histogram(values, bins=bin_size_scott, density=True)
+   relative_frequencies_percentage = (counts / np.sum(counts)) * 100
+   midpoints = (bins[:-1] + bins[1:]) / 2
+   plt.bar(midpoints, relative_frequencies_percentage, width=np.diff(bins), align='center', color='skyblue', edgecolor='black', alpha=0.7, label='Data')
+
+   # 8. Mark the positions of the upper and lower outlier bounds
+   plt.axvline(lower_boundary, color='orange', linestyle='dotted', linewidth=2.0, label='Lower Outlier Bound: {:.2f}µs'.format(lower_boundary))
+   plt.axvline(upper_boundary, color='Black', linestyle='dotted', linewidth=2.0, label='Upper Outlier Bound: {:.2f}µs'.format(upper_boundary))
+
+   # 9. Weighted mean calculation
+   counts_inbound, bins_inbound = np.histogram(inbound_values, bins=bin_size_scott, density=True)
+   midpoints_inbound = (bins_inbound[:-1] + bins_inbound[1:]) / 2
+   relative_freq_mean = np.sum(midpoints_inbound * counts_inbound / np.sum(counts_inbound))
+   plt.axvline(relative_freq_mean, color='red', linestyle='dashed', linewidth=2, label='Mean: {:.2f}µs'.format(relative_freq_mean))
+
+   # 10. Formting histogram for bettwer visualization
+   plt.tick_params(axis='both', which='major', labelsize=20)
+   for label in (plt.gca().get_xticklabels() + plt.gca().get_yticklabels()):
+       label.set_fontweight('bold')
+       
+   # 11. Display histogram
+   plt.xticks(np.arange(min(values), max(values)+1, 2.0), rotation=60)
+   plt.title("Addition block Integer - 16 bytes",fontsize=18, fontweight='bold')
+   plt.xlabel("t / µs", fontsize=20, fontweight='bold')
+   plt.ylabel("f / %", fontsize=20, fontweight='bold')
+   plt.ylim(0, 100)  
+   plt.legend(fontsize=20)
+   plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+   plt.tight_layout()
+   plt.show()
+  
+ADD_Int()
